@@ -1,7 +1,8 @@
 {
   "name": "@eldera/validators",
   "version": "1.0.0",
-  "main": "./index.js",
+  "type": "commonjs",
+  "main": "./index.ts",
   "types": "./index.ts",
   "dependencies": {
     "zod": "^3.22.4"
