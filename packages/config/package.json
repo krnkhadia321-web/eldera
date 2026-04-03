@@ -1,6 +1,6 @@
 {
   "name": "@eldera/config",
   "version": "1.0.0",
-  "main": "./index.ts",
+  "main": "./index.js",
   "types": "./index.ts"
 }
