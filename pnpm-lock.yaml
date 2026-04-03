@@ -24,7 +24,7 @@ importers:
         specifier: workspace:*
         version: link:../../packages/validators
       '@prisma/client':
-        specifier: ^5.10.0
+        specifier: ^5.22.0
         version: 5.22.0(prisma@5.22.0)
       bcryptjs:
         specifier: ^2.4.3
@@ -91,7 +91,7 @@ importers:
         specifier: ^3.0.11
         version: 3.0.11
       prisma:
-        specifier: ^5.10.0
+        specifier: ^5.22.0
         version: 5.22.0
       tsx:
         specifier: ^4.7.0
