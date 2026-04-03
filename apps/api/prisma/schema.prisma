@@ -1,0 +1,324 @@
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+    elder
+    family
+    caregiver
+    doctor
+    admin
+}
+
+enum MemberRole {
+    primary
+    secondary
+}
+
+enum BookingStatus {
+    pending
+    confirmed
+    cancelled
+    completed
+}
+
+enum AppointmentType {
+    in_clinic
+    telehealth
+}
+
+enum AppointmentStatus {
+    scheduled
+    completed
+    cancelled
+    no_show
+}
+
+enum MedLogStatus {
+    taken
+    missed
+    skipped
+}
+
+enum AlertType {
+    sos
+    missed_medication
+    low_mood
+    fall
+    inactivity
+}
+
+enum AlertSeverity {
+    low
+    medium
+    high
+    critical
+}
+
+enum DocType {
+    medical_record
+    prescription
+    insurance
+    legal
+    identity
+    other
+}
+
+enum ExpenseCategory {
+    medical
+    caregiver
+    medication
+    grocery
+    utility
+    other
+}
+
+enum NotificationChannel {
+    in_app
+    email
+    sms
+    whatsapp
+}
+
+model User {
+    id           String   @id @default(uuid())
+    fullName     String
+    email        String   @unique
+    phone        String
+    passwordHash String
+    role         UserRole
+    avatarUrl    String?
+    createdAt    DateTime @default(now())
+
+    elderProfile     ElderProfile?
+    caregiverProfile Caregiver?
+    doctorProfile    Doctor?
+    familyMembers    FamilyMember[]
+    notifications    Notification[]
+    documents        Document[]     @relation("UploadedBy")
+    alerts           Alert[]        @relation("TriggeredBy")
+    expenses         Expense[]      @relation("PaidBy")
+    familiesCreated  Family[]       @relation("CreatedBy")
+}
+
+model ElderProfile {
+    id                String   @id @default(uuid())
+    userId            String   @unique
+    dateOfBirth       DateTime
+    bloodGroup        String?
+    address           String
+    city              String
+    emergencyContact  String
+    medicalConditions String?
+    allergies         String?
+    createdAt         DateTime @default(now())
+
+    user            User             @relation(fields: [userId], references: [id])
+    medications     Medication[]
+    healthLogs      HealthLog[]
+    documents       Document[]
+    alerts          Alert[]
+    appointments    Appointment[]
+    bookings        Booking[]
+    aiConversations AiConversation[]
+    expenses        Expense[]
+}
+
+model Family {
+    id        String   @id @default(uuid())
+    name      String
+    createdBy String
+    createdAt DateTime @default(now())
+
+    creator      User           @relation("CreatedBy", fields: [createdBy], references: [id])
+    members      FamilyMember[]
+    bookings     Booking[]
+    appointments Appointment[]
+    expenses     Expense[]
+}
+
+model FamilyMember {
+    id         String     @id @default(uuid())
+    familyId   String
+    userId     String
+    memberRole MemberRole @default(secondary)
+    isPrimary  Boolean    @default(false)
+    joinedAt   DateTime   @default(now())
+
+    family Family @relation(fields: [familyId], references: [id])
+    user   User   @relation(fields: [userId], references: [id])
+}
+
+model Caregiver {
+    id          String  @id @default(uuid())
+    userId      String  @unique
+    bio         String?
+    skills      Json
+    languages   Json
+    city        String
+    hourlyRate  Float
+    rating      Float   @default(0)
+    isVerified  Boolean @default(false)
+    isAvailable Boolean @default(true)
+
+    user     User      @relation(fields: [userId], references: [id])
+    bookings Booking[]
+}
+
+model Doctor {
+    id               String  @id @default(uuid())
+    userId           String  @unique
+    specialty        String
+    clinicName       String
+    city             String
+    consultationFee  Float
+    rating           Float   @default(0)
+    offersTelehealth Boolean @default(false)
+
+    user         User          @relation(fields: [userId], references: [id])
+    appointments Appointment[]
+}
+
+model Medication {
+    id           String    @id @default(uuid())
+    elderId      String
+    name         String
+    dosage       String
+    frequency    String
+    reminderTime String
+    startDate    DateTime
+    endDate      DateTime?
+    isActive     Boolean   @default(true)
+
+    elder   ElderProfile @relation(fields: [elderId], references: [id])
+    medLogs MedLog[]
+}
+
+model MedLog {
+    id           String       @id @default(uuid())
+    medicationId String
+    elderId      String
+    status       MedLogStatus
+    loggedAt     DateTime     @default(now())
+    notes        String?
+
+    medication Medication @relation(fields: [medicationId], references: [id])
+}
+
+model Booking {
+    id          String        @id @default(uuid())
+    elderId     String
+    caregiverId String
+    familyId    String
+    startTime   DateTime
+    endTime     DateTime
+    status      BookingStatus @default(pending)
+    totalAmount Float
+    platformFee Float
+    notes       String?
+
+    elder     ElderProfile @relation(fields: [elderId], references: [id])
+    caregiver Caregiver    @relation(fields: [caregiverId], references: [id])
+    family    Family       @relation(fields: [familyId], references: [id])
+}
+
+model Appointment {
+    id           String            @id @default(uuid())
+    elderId      String
+    doctorId     String
+    familyId     String
+    scheduledAt  DateTime
+    type         AppointmentType
+    status       AppointmentStatus @default(scheduled)
+    videoRoomUrl String?
+    notes        String?
+
+    elder  ElderProfile @relation(fields: [elderId], references: [id])
+    doctor Doctor       @relation(fields: [doctorId], references: [id])
+    family Family       @relation(fields: [familyId], references: [id])
+}
+
+model HealthLog {
+    id          String   @id @default(uuid())
+    elderId     String
+    moodScore   Int
+    bpSystolic  Int?
+    bpDiastolic Int?
+    weightKg    Float?
+    spo2        Int?
+    notes       String?
+    loggedAt    DateTime @default(now())
+
+    elder ElderProfile @relation(fields: [elderId], references: [id])
+}
+
+model Document {
+    id         String   @id @default(uuid())
+    elderId    String
+    uploadedBy String
+    title      String
+    docType    DocType
+    fileUrl    String
+    fileKey    String
+    uploadedAt DateTime @default(now())
+
+    elder    ElderProfile @relation(fields: [elderId], references: [id])
+    uploader User         @relation("UploadedBy", fields: [uploadedBy], references: [id])
+}
+
+model Alert {
+    id          String        @id @default(uuid())
+    elderId     String
+    triggeredBy String
+    alertType   AlertType
+    severity    AlertSeverity
+    message     String
+    resolved    Boolean       @default(false)
+    triggeredAt DateTime      @default(now())
+
+    elder   ElderProfile @relation(fields: [elderId], references: [id])
+    trigger User         @relation("TriggeredBy", fields: [triggeredBy], references: [id])
+}
+
+model Expense {
+    id          String          @id @default(uuid())
+    elderId     String
+    familyId    String
+    paidBy      String
+    category    ExpenseCategory
+    amount      Float
+    description String
+    expenseDate DateTime
+
+    elder  ElderProfile @relation(fields: [elderId], references: [id])
+    family Family       @relation(fields: [familyId], references: [id])
+    payer  User         @relation("PaidBy", fields: [paidBy], references: [id])
+}
+
+model AiConversation {
+    id           String   @id @default(uuid())
+    elderId      String
+    messages     Json
+    moodDetected Int?
+    flagged      Boolean  @default(false)
+    createdAt    DateTime @default(now())
+
+    elder ElderProfile @relation(fields: [elderId], references: [id])
+}
+
+model Notification {
+    id      String              @id @default(uuid())
+    userId  String
+    title   String
+    body    String
+    channel NotificationChannel
+    isRead  Boolean             @default(false)
+    sentAt  DateTime            @default(now())
+
+    user User @relation(fields: [userId], references: [id])
+}
