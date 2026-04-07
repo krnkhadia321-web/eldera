@@ -9,7 +9,19 @@ import { ROUTES } from './lib/constants'
 import LoginPage from './app/(auth)/login'
 import RegisterPage from './app/(auth)/register'
 
-const Dashboard = React.lazy(() => import('./app/dashboard/index'))
+const ElderDashboard = React.lazy(() => import('./app/dashboard/index'))
+const CaregiverDashboard = React.lazy(() => import('./app/dashboard/caregiver'))
+const DoctorDashboard = React.lazy(() => import('./app/dashboard/doctor'))
+const FamilyDashboard = React.lazy(() => import('./app/dashboard/family'))
+
+const DashboardRouter: React.FC = () => {
+  const { user } = useAuthStore()
+  
+  if (user?.role === 'caregiver') return <CaregiverDashboard />
+  if (user?.role === 'doctor') return <DoctorDashboard />
+  if (user?.role === 'family') return <FamilyDashboard />
+  return <ElderDashboard />
+}
 const ElderPage = React.lazy(() => import('./app/elder/[id]'))
 const CaregiversPage = React.lazy(() => import('./app/caregivers/index'))
 const DoctorsPage = React.lazy(() => import('./app/doctors/index'))
@@ -52,7 +64,7 @@ export default function App() {
         <Route path={ROUTES.LOGIN} element={isAuthenticated ? <Navigate to={ROUTES.DASHBOARD} /> : <LoginPage />} />
         <Route path={ROUTES.REGISTER} element={isAuthenticated ? <Navigate to={ROUTES.DASHBOARD} /> : <RegisterPage />} />
 
-        <Route path={ROUTES.DASHBOARD} element={<ProtectedLayout><Dashboard /></ProtectedLayout>} />
+        <Route path={ROUTES.DASHBOARD} element={<ProtectedLayout><DashboardRouter /></ProtectedLayout>} />
         <Route path={ROUTES.ELDER} element={<ProtectedLayout><ElderPage /></ProtectedLayout>} />
         <Route path={ROUTES.CAREGIVERS} element={<ProtectedLayout><CaregiversPage /></ProtectedLayout>} />
         <Route path={ROUTES.DOCTORS} element={<ProtectedLayout><DoctorsPage /></ProtectedLayout>} />

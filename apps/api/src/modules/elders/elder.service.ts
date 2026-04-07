@@ -118,3 +118,15 @@ export const getFamilyElders = async (familyId: string) => {
     .map((m: { user: { elderProfile: unknown } }) => m.user.elderProfile)
     .filter(Boolean)
 }
+
+export const getElderByUserIdPublic = async (userId: string) => {
+  return prisma.elderProfile.findUnique({
+    where: { userId },
+    include: {
+      user: {
+        select: { fullName: true, email: true, phone: true, avatarUrl: true },
+      },
+      medications: { where: { isActive: true } },
+    },
+  })
+}

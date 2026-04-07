@@ -8,6 +8,7 @@ import {
   getElderByUserId,
   updateElderProfile,
   getFamilyElders,
+  getElderByUserIdPublic
 } from './elder.service'
 
 export const elderRouter = Router()
@@ -76,6 +77,19 @@ elderRouter.get(
     try {
       const elders = await getFamilyElders(req.params.familyId)
       res.status(200).json({ success: true, data: elders })
+    } catch (error) {
+      next(error)
+    }
+  }
+)
+
+elderRouter.get(
+  '/by-user/:userId',
+  authenticate,
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const profile = await getElderByUserIdPublic(req.params.userId)
+      res.status(200).json({ success: true, data: profile })
     } catch (error) {
       next(error)
     }
