@@ -1,87 +1,90 @@
-import React, { useEffect, useState } from 'react'
-import { TopBar } from '../../components/layout/TopBar'
-import { Card } from '../../components/ui/Card'
-import { Button } from '../../components/ui/Button'
-import { Badge } from '../../components/ui/Badge'
-import { useAuthStore } from '../../store/authStore'
-import { useAlertStore } from '../../store/alertStore'
-import api from '../../lib/api'
-import toast from 'react-hot-toast'
-import { formatDate } from '../../lib/utils'
+import React, { useEffect, useState } from "react";
+import { TopBar } from "../../components/layout/TopBar";
+import { Card } from "../../components/ui/Card";
+import { Button } from "../../components/ui/Button";
+import { Badge } from "../../components/ui/Badge";
+import { useAuthStore } from "../../store/authStore";
+import { useAlertStore } from "../../store/alertStore";
+import api from "../../lib/api";
+import toast from "react-hot-toast";
+import { formatDate } from "../../lib/utils";
 
 export default function AlertsPage() {
-  const { user } = useAuthStore()
-  const { alerts, setAlerts, resolveAlert } = useAlertStore()
-  const [elderId, setElderId] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [sosLoading, setSosLoading] = useState(false)
+  const { user } = useAuthStore();
+  const { alerts, setAlerts, resolveAlert } = useAlertStore();
+  const [elderId, setElderId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [sosLoading, setSosLoading] = useState(false);
 
   useEffect(() => {
     const fetchAlerts = async () => {
       try {
-        const elderRes = await api.get('/elders/me')
-        const elder = elderRes.data.data
-        setElderId(elder.id)
-        const res = await api.get(`/alerts/${elder.id}`)
-        setAlerts(res.data.data)
+        const elderRes = await api.get("/elders/me");
+        const elder = elderRes.data.data;
+        setElderId(elder.id);
+        const res = await api.get(`/alerts/${elder.id}`);
+        setAlerts(res.data.data);
       } catch (err) {
-        console.error(err)
+        console.error(err);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
-    fetchAlerts()
-  }, [user])
+    };
+    fetchAlerts();
+  }, [user]);
 
   const handleSOS = async () => {
-    if (!elderId) return
-    setSosLoading(true)
+    if (!elderId) return;
+    setSosLoading(true);
     try {
-      await api.post('/alerts/sos', { elderId })
-      toast.success('SOS alert sent to your family!')
+      await api.post("/alerts/sos", { elderId });
+      toast.success("SOS alert sent to your family!");
+      // Refetch alerts immediately
+      const res = await api.get(`/alerts/${elderId}`);
+      setAlerts(res.data.data);
     } catch {
-      toast.error('Failed to send SOS')
+      toast.error("Failed to send SOS");
     } finally {
-      setSosLoading(false)
+      setSosLoading(false);
     }
-  }
+  };
 
   const handleResolve = async (alertId: string) => {
     try {
-      await api.patch(`/alerts/${alertId}/resolve`)
-      resolveAlert(alertId)
-      toast.success('Alert resolved')
+      await api.patch(`/alerts/${alertId}/resolve`);
+      resolveAlert(alertId);
+      toast.success("Alert resolved");
     } catch {
-      toast.error('Failed to resolve alert')
+      toast.error("Failed to resolve alert");
     }
-  }
+  };
 
   const getSeverityVariant = (severity: string) => {
-    if (severity === 'critical') return 'red'
-    if (severity === 'high') return 'red'
-    if (severity === 'medium') return 'yellow'
-    return 'gray'
-  }
+    if (severity === "critical") return "red";
+    if (severity === "high") return "red";
+    if (severity === "medium") return "yellow";
+    return "gray";
+  };
 
   const getAlertIcon = (type: string) => {
-    if (type === 'sos') return '🆘'
-    if (type === 'missed_medication') return '💊'
-    if (type === 'low_mood') return '😔'
-    return '⚠️'
-  }
+    if (type === "sos") return "🆘";
+    if (type === "missed_medication") return "💊";
+    if (type === "low_mood") return "😔";
+    return "⚠️";
+  };
 
-  if (loading) return (
-    <div className="flex items-center justify-center h-64">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
-    </div>
-  )
+  if (loading)
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+      </div>
+    );
 
   return (
     <div>
       <TopBar title="Alerts" />
       <div className="p-6 space-y-6">
-
-        {user?.role === 'elder' && (
+        {user?.role === "elder" && (
           <Card className="bg-red-50 border-red-200">
             <div className="flex items-center justify-between">
               <div>
@@ -115,17 +118,21 @@ export default function AlertsPage() {
         <div className="space-y-3">
           {alerts.length === 0 ? (
             <Card>
-              <p className="text-sm text-gray-400 text-center py-4">No alerts yet</p>
+              <p className="text-sm text-gray-400 text-center py-4">
+                No alerts yet
+              </p>
             </Card>
           ) : (
             alerts.map((alert) => (
               <Card
                 key={alert.id}
-                className={alert.resolved ? 'opacity-60' : ''}
+                className={alert.resolved ? "opacity-60" : ""}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3">
-                    <span className="text-2xl">{getAlertIcon(alert.alertType)}</span>
+                    <span className="text-2xl">
+                      {getAlertIcon(alert.alertType)}
+                    </span>
                     <div>
                       <p className="text-sm font-medium text-gray-900">
                         {alert.message}
@@ -136,7 +143,12 @@ export default function AlertsPage() {
                       <div className="flex gap-2 mt-2">
                         <Badge
                           label={alert.severity}
-                          variant={getSeverityVariant(alert.severity) as 'red' | 'yellow' | 'gray'}
+                          variant={
+                            getSeverityVariant(alert.severity) as
+                              | "red"
+                              | "yellow"
+                              | "gray"
+                          }
                         />
                         {alert.resolved && (
                           <Badge label="Resolved" variant="green" />
@@ -160,5 +172,5 @@ export default function AlertsPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }
