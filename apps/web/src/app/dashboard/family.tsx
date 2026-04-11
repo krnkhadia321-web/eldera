@@ -57,45 +57,39 @@ export default function FamilyDashboard() {
     const family = families[0].family
     setFamilyId(family.id)
 
-    const bookingsRes = await api.get(`/bookings?familyId=${family.id}`)
-    setBookings(bookingsRes.data.data)
+    const [bookingsRes, fullFamilyRes] = await Promise.allSettled([
+      api.get(`/bookings?familyId=${family.id}`),
+      api.get(`/families/${family.id}`),
+    ])
 
-    // Get full family details with members
-    const fullFamilyRes = await api.get(`/families/${family.id}`)
-    const fullFamily = fullFamilyRes.data.data
+    if (bookingsRes.status === 'fulfilled') {
+      setBookings(bookingsRes.value.data.data)
+    }
 
-    const allAlerts: Alert[] = []
-    const elderProfiles: Elder[] = []
+    if (fullFamilyRes.status === 'fulfilled') {
+      const fullFamily = fullFamilyRes.value.data.data
+      const allAlerts: Alert[] = []
+      const elderProfiles: Elder[] = []
 
-    for (const member of fullFamily.members) {
-      if (member.user.role === 'elder') {
-        try {
-          // Fetch elder profile by userId
-          const elderRes = await api.get(`/elders/me`)
-          // Actually fetch by searching
-          const searchRes = await api.get(`/users/${member.user.id}`)
-          const userId = searchRes.data.data.id
-
-          // Find elder profile for this user
-          const allEldersRes = await api.get(`/elders/family/${family.id}`)
-          const familyElders = allEldersRes.data.data
-
-          for (const elder of familyElders) {
+      for (const member of fullFamily.members) {
+        if (member.user.role === 'elder') {
+          try {
+            const elderRes = await api.get(`/elders/by-user/${member.user.id}`)
+            const elder = elderRes.data.data
             if (elder) {
               elderProfiles.push(elder)
               const alertRes = await api.get(`/alerts/${elder.id}/unresolved`)
               allAlerts.push(...alertRes.data.data)
             }
+          } catch {
+            console.error('Could not fetch elder')
           }
-        } catch (err) {
-          console.error(err)
         }
-        break
       }
-    }
 
-    setElders(elderProfiles)
-    setAlerts(allAlerts)
+      setElders(elderProfiles)
+      setAlerts(allAlerts)
+    }
   } catch (err) {
     console.error(err)
   } finally {
