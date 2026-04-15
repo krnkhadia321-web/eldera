@@ -5,8 +5,25 @@ import {
   getConversationHistory,
   getFlaggedConversations,
 } from './companion.service'
+import { analyzeTrends } from './trends.service'
 
 export const aiRouter = Router()
+
+aiRouter.get(
+  '/trends/:elderId',
+  authenticate,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const windowDays = req.query.days
+        ? parseInt(req.query.days as string, 10)
+        : 14
+      const report = await analyzeTrends(req.params.elderId, windowDays)
+      res.status(200).json({ success: true, data: report })
+    } catch (error) {
+      next(error)
+    }
+  }
+)
 
 aiRouter.post(
   '/chat',

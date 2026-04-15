@@ -9,6 +9,7 @@ import toast from 'react-hot-toast'
 import { formatDate, formatCurrency } from '../../lib/utils'
 import { useNavigate } from 'react-router-dom'
 import { ROUTES } from '../../lib/constants'
+import { HealthTrendsCard } from '../../components/health/HealthTrendsCard'
 
 interface Elder {
   id: string
@@ -196,7 +197,8 @@ export default function FamilyDashboard() {
           ) : (
             <div className="space-y-3">
               {elders.map((elder) => (
-                <Card key={elder.id}>
+                <div key={elder.id} className="space-y-3">
+                <Card>
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-2xl">
@@ -241,6 +243,8 @@ export default function FamilyDashboard() {
                     </div>
                   )}
                 </Card>
+                <HealthTrendsCard elderId={elder.id} />
+                </div>
               ))}
             </div>
           )}

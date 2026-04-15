@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { TopBar } from '../../components/layout/TopBar'
 import { Card } from '../../components/ui/Card'
 import { Badge } from '../../components/ui/Badge'
+import { HealthTrendsCard } from '../../components/health/HealthTrendsCard'
 import { useAuthStore } from '../../store/authStore'
 import api from '../../lib/api'
 import { formatDate, getMoodLabel } from '../../lib/utils'
@@ -53,6 +54,7 @@ export default function Dashboard() {
     activeMedications: [],
     bookings: [],
   })
+  const [elderId, setElderId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -61,6 +63,7 @@ export default function Dashboard() {
     if (user?.role === 'elder') {
       const elderRes = await api.get('/elders/me')
       const elder = elderRes.data.data
+      setElderId(elder.id)
 
       const results = await Promise.allSettled([
         api.get(`/health-logs/${elder.id}/summary`),
@@ -144,6 +147,10 @@ export default function Dashboard() {
         </div>
 
         <div className="grid md:grid-cols-2 gap-6">
+          {elderId && (
+            <HealthTrendsCard elderId={elderId} className="md:col-span-2" />
+          )}
+
           <Card>
             <h4 className="font-semibold text-gray-900 mb-3">Today's Medications 💊</h4>
             {stats.activeMedications.length === 0 ? (
