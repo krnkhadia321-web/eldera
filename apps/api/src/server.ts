@@ -21,6 +21,7 @@ const io = new Server(httpServer, {
 })
 
 initSocket(io)
+app.set('io', io)
 
 startAllJobs()
 startCleanupJobs()

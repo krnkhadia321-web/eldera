@@ -1,11 +1,12 @@
 import { Router, Request, Response, NextFunction } from 'express'
+import { Server } from 'socket.io'
 import { authenticate, AuthRequest } from '../../middleware/auth.middleware'
 import {
-  triggerSOS,
   getAlerts,
   getUnresolvedAlerts,
   resolveAlert,
 } from './alert.service'
+import { handleSOSWithNotifications } from './sos.handler'
 
 export const alertRouter = Router()
 
@@ -16,8 +17,13 @@ alertRouter.post(
     try {
       const authReq = req as AuthRequest
       const { elderId } = req.body
-      const result = await triggerSOS(elderId, authReq.user!.id)
-      res.status(201).json({ success: true, data: result })
+      const io = req.app.get('io') as Server
+      const alert = await handleSOSWithNotifications(
+        io,
+        elderId,
+        authReq.user!.id
+      )
+      res.status(201).json({ success: true, data: { alert } })
     } catch (error) {
       next(error)
     }

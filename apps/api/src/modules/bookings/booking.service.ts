@@ -2,6 +2,10 @@ import { prisma } from '../../lib/prisma'
 import { createError } from '../../middleware/errorHandler'
 import { BookingInput } from '@eldera/validators'
 import { PLATFORM_FEE_PERCENT } from '@eldera/config'
+import {
+  sendCaregiverBookingAlert,
+  sendBookingConfirmation,
+} from '../notifications/email.service'
 
 export const createBooking = async (
   familyId: string,
@@ -9,6 +13,7 @@ export const createBooking = async (
 ) => {
   const caregiver = await prisma.caregiver.findUnique({
     where: { id: data.caregiverId },
+    include: { user: { select: { fullName: true, email: true } } },
   })
 
   if (!caregiver) throw createError('Caregiver not found', 404)
@@ -20,7 +25,7 @@ export const createBooking = async (
   const totalAmount = hours * caregiver.hourlyRate
   const platformFee = (totalAmount * PLATFORM_FEE_PERCENT) / 100
 
-  return prisma.booking.create({
+  const booking = await prisma.booking.create({
     data: {
       elderId: data.elderId,
       caregiverId: data.caregiverId,
@@ -35,8 +40,23 @@ export const createBooking = async (
       caregiver: {
         include: { user: { select: { fullName: true, phone: true } } },
       },
+      elder: { include: { user: { select: { fullName: true } } } },
     },
   })
+
+  if (caregiver.user?.email) {
+    await sendCaregiverBookingAlert(
+      caregiver.user.email,
+      caregiver.user.fullName,
+      booking.elder.user.fullName,
+      start.toLocaleString('en-IN'),
+      end.toLocaleString('en-IN'),
+      totalAmount,
+      data.notes ?? ''
+    )
+  }
+
+  return booking
 }
 
 export const getBookings = async (filters: {
@@ -66,10 +86,39 @@ export const updateBookingStatus = async (
   bookingId: string,
   status: 'confirmed' | 'cancelled' | 'completed'
 ) => {
-  return prisma.booking.update({
+  const booking = await prisma.booking.update({
     where: { id: bookingId },
     data: { status },
+    include: {
+      caregiver: { include: { user: { select: { fullName: true } } } },
+      elder: { include: { user: { select: { fullName: true } } } },
+    },
   })
+
+  if (status === 'confirmed' || status === 'cancelled') {
+    const familyMembers = await prisma.familyMember.findMany({
+      where: { familyId: booking.familyId },
+      include: { user: { select: { email: true } } },
+    })
+
+    await Promise.all(
+      familyMembers
+        .filter((m) => m.user?.email)
+        .map((m) =>
+          sendBookingConfirmation(
+            m.user!.email,
+            booking.caregiver.user.fullName,
+            booking.elder.user.fullName,
+            booking.startTime.toLocaleString('en-IN'),
+            booking.endTime.toLocaleString('en-IN'),
+            Number(booking.totalAmount),
+            status
+          )
+        )
+    )
+  }
+
+  return booking
 }
 
 export const getBookingById = async (bookingId: string) => {

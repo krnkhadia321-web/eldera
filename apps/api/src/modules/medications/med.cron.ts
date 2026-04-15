@@ -1,6 +1,7 @@
 import cron from 'node-cron'
 import { prisma } from '../../lib/prisma'
 import { createMissedMedAlert } from '../alerts/alert.service'
+import { sendMedicationReminder } from '../notifications/email.service'
 
 export const startMedicationReminders = () => {
   cron.schedule('* * * * *', async () => {
@@ -32,6 +33,13 @@ export const startMedicationReminders = () => {
 
       if (!alreadyLogged) {
         console.log(`⏰ Reminder: ${med.elder.user.fullName} should take ${med.name}`)
+        if (med.elder.user.email) {
+          await sendMedicationReminder(
+            med.elder.user.email,
+            med.elder.user.fullName,
+            [{ name: med.name, dosage: med.dosage, time: med.reminderTime }]
+          )
+        }
       }
     }
   })
