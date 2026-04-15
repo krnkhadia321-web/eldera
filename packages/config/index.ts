@@ -26,6 +26,7 @@ export const ALERT_TYPE = {
   LOW_MOOD: 'low_mood',
   FALL: 'fall',
   INACTIVITY: 'inactivity',
+  HEALTH_TREND: 'health_trend',
 } as const
 
 export const EXPENSE_CATEGORY = {

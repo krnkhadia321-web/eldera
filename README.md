@@ -53,11 +53,12 @@ A full-stack care coordination platform that connects elders, family members, pr
 - Medication reminder cron — fires per-minute, emails elder at the exact `HH:MM` reminder time, only if today's dose isn't already logged
 - Missed medication cron — runs hourly, creates a `missed_medication` alert if the dose window has passed without a log
 - Weekly health digest cron — Sundays 8AM, runs Groq over each elder's recent data + emails every family member a summary with avg mood, latest BP, and 7-day med adherence
+- Daily trend-alert cron — 9AM every day, runs predictive trend detection per elder, creates a `health_trend` alert for every elder with a concerning pattern, and emails all family members when any concern is `critical`. 24h dedupe prevents daily spam for the same elder.
 - Cleanup cron — daily at 2AM for stale records
 
 ### AI features
 - **AI Companion** — Groq-backed chat tuned for warm, culturally-aware responses ("Namaste"-style). Conversations are stored, and messages flagged for concerning content are surfaced to family.
-- **Predictive Health Trends** — statistical analysis of last 14 days of health logs, splits window in half and compares averages. Classifies mood, systolic BP, diastolic BP, SpO₂, and weight as `improving` / `declining` / `stable` with severity thresholds calibrated against clinical norms (BP ≥ 160/100 critical, SpO₂ < 92% critical, mood drop ≥ 2pts warning, weight drop ≥ 3% warning). Exposed on both elder and family dashboards as a "Health Trends" card with a concerns banner + per-metric breakdown.
+- **Predictive Health Trends** — statistical analysis of last 14 days of health logs, splits window in half and compares averages. Classifies mood, systolic BP, diastolic BP, SpO₂, and weight as `improving` / `declining` / `stable` with severity thresholds calibrated against clinical norms (BP ≥ 160/100 critical, SpO₂ < 92% critical, mood drop ≥ 2pts warning, weight drop ≥ 3% warning). Exposed on both elder and family dashboards as a "Health Trends" card with a concerns banner + per-metric breakdown, and runs as a daily cron that auto-creates `health_trend` alerts + emails family on critical concerns.
 - **Weekly AI digest** — Groq summary per elder + stat cards (mood, BP, adherence) in email.
 
 ### Email notifications (Resend)
@@ -66,6 +67,7 @@ A full-stack care coordination platform that connects elders, family members, pr
 - ✅ Booking confirmed / ❌ cancelled to all family members on status change
 - 💊 Medication reminder to elder at reminder time
 - 📊 Weekly health report to all family members
+- 🚨 Critical health-trend alert to all family members when predictive trend detection flags critical patterns
 - `EMAIL_DEV_OVERRIDE` env flag redirects all outgoing email to a single address for free-tier testing, preserving the original recipient in the subject line
 
 ## Monorepo layout
@@ -136,6 +138,9 @@ RAZORPAY_KEY_SECRET="..."
 ```bash
 # Fire the weekly digest cron on demand
 npx tsx src/lib/run-weekly-digest.ts
+
+# Fire the daily trend-alert cron on demand (creates health_trend alerts + emails family for criticals, 24h deduped)
+npx tsx src/lib/run-trend-alerts.ts
 
 # Reseed 14 days of health logs (first 7 healthy, last 7 declining — good for testing trend detection)
 npx tsx src/lib/seed-health-logs.ts

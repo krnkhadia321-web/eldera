@@ -120,6 +120,7 @@ export default function FamilyDashboard() {
     if (type === 'sos') return '🆘'
     if (type === 'missed_medication') return '💊'
     if (type === 'low_mood') return '😔'
+    if (type === 'health_trend') return '🧠'
     return '⚠️'
   }
 

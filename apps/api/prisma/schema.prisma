@@ -51,6 +51,7 @@ enum AlertType {
     low_mood
     fall
     inactivity
+    health_trend
 }
 
 enum AlertSeverity {

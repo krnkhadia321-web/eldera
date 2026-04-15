@@ -172,6 +172,54 @@ export const sendMedicationReminder = async (
   );
 };
 
+export const sendHealthTrendAlert = async (
+  to: string,
+  elderName: string,
+  concerns: Array<{
+    label: string
+    severity: "info" | "warning" | "critical";
+    message: string;
+  }>,
+) => {
+  const criticals = concerns.filter((c) => c.severity === "critical");
+  const headerColor = criticals.length ? "#dc2626" : "#d97706";
+  const headerLabel = criticals.length
+    ? "🚨 Critical Health Trend"
+    : "⚠️ Health Trend Warning";
+
+  const items = concerns
+    .map((c) => {
+      const color = c.severity === "critical" ? "#991b1b" : "#92400e";
+      return `<li style="color:${color};margin-bottom:8px"><strong>${c.label}:</strong> ${c.message}</li>`;
+    })
+    .join("");
+
+  return sendEmail(
+    to,
+    `${headerLabel}: ${elderName}`,
+    `
+    <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px">
+      <div style="background:${headerColor};padding:16px;border-radius:12px;margin-bottom:24px">
+        <h2 style="color:#fff;margin:0">${headerLabel}</h2>
+        <p style="color:#fee;margin:4px 0 0;font-size:14px">${elderName}</p>
+      </div>
+      <p style="color:#555;font-size:16px">
+        Our system has detected ${concerns.length} health trend${concerns.length === 1 ? "" : "s"} worth your attention over the past 14 days.
+      </p>
+      <ul style="background:#fef2f2;border:1px solid #fecaca;padding:20px 20px 20px 36px;border-radius:8px;margin:20px 0">
+        ${items}
+      </ul>
+      <p style="color:#555">Please check in on ${elderName} and, if needed, consult their doctor.</p>
+      <a href="https://elderaweb-production.up.railway.app/dashboard"
+         style="display:inline-block;background:${headerColor};color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600">
+        Open Dashboard
+      </a>
+      <p style="color:#999;font-size:12px;margin-top:24px">This alert was generated automatically from ${elderName}'s recent health logs.</p>
+    </div>
+    `,
+  );
+};
+
 export const sendWeeklyDigest = async (
   to: string,
   elderName: string,

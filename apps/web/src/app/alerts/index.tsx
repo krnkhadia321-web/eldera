@@ -19,11 +19,42 @@ export default function AlertsPage() {
   useEffect(() => {
     const fetchAlerts = async () => {
       try {
-        const elderRes = await api.get("/elders/me");
-        const elder = elderRes.data.data;
-        setElderId(elder.id);
-        const res = await api.get(`/alerts/${elder.id}`);
-        setAlerts(res.data.data);
+        if (user?.role === "elder") {
+          const elderRes = await api.get("/elders/me");
+          const elder = elderRes.data.data;
+          setElderId(elder.id);
+          const res = await api.get(`/alerts/${elder.id}`);
+          setAlerts(res.data.data);
+        } else {
+          const familyRes = await api.get("/families/my");
+          const families = familyRes.data.data;
+          if (!families.length) {
+            setAlerts([]);
+            return;
+          }
+          const allAlerts: typeof alerts = [];
+          for (const fm of families) {
+            const fullFamily = await api.get(`/families/${fm.family.id}`);
+            for (const member of fullFamily.data.data.members) {
+              if (member.user.role !== "elder") continue;
+              try {
+                const eRes = await api.get(`/elders/by-user/${member.user.id}`);
+                const elder = eRes.data.data;
+                if (!elder) continue;
+                const aRes = await api.get(`/alerts/${elder.id}`);
+                allAlerts.push(...aRes.data.data);
+              } catch {
+                // skip
+              }
+            }
+          }
+          allAlerts.sort(
+            (a, b) =>
+              new Date(b.triggeredAt).getTime() -
+              new Date(a.triggeredAt).getTime(),
+          );
+          setAlerts(allAlerts);
+        }
       } catch (err) {
         console.error(err);
       } finally {
@@ -70,6 +101,7 @@ export default function AlertsPage() {
     if (type === "sos") return "🆘";
     if (type === "missed_medication") return "💊";
     if (type === "low_mood") return "😔";
+    if (type === "health_trend") return "🧠";
     return "⚠️";
   };
 
